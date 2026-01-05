@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Customer Database</title>
+    <style>
+        /* Design jo aapko pasand aaya tha */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        /* Inputs aur Buttons */
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        button { color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; transition: 0.3s; }
+        
+        .btn-save { background-color: #28a745; width: 100%; }
+        .btn-save:hover { background-color: #218838; }
+        .btn-export { background-color: #007bff; width: auto; padding: 10px 20px; }
+        .btn-export:hover { background-color: #0056b3; }
+        .btn-delete { background-color: #dc3545; padding: 5px 10px; font-size: 12px; }
+
+        /* Search aur Table controls */
+        .controls { display: flex; gap: 10px; align-items: center; margin: 20px 0; }
+        #searchInput { margin: 0; flex-grow: 1; border: 2px solid #007bff; }
+
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+        th, td { border: 1px solid #eee; padding: 15px; text-align: left; }
+        th { background-color: #f8f9fa; color: #555; }
+        tr:hover { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Add New Customer</h2>
+    <form id="customerForm">
+        <input type="text" id="name" placeholder="Full Name" required>
+        <input type="tel" id="phone" placeholder="Phone Number" required>
+        <input type="text" id="address" placeholder="Address" required>
+        <button type="submit" class="btn-save">Save Customer</button>
+    </form>
+
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+
+    <h2>Customer List</h2>
+    
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="🔍 Search by name or phone...">
+        <button id="exportBtn" class="btn-export">Export to CSV</button>
+    </div>
+
+    <table id="customerTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    const form = document.getElementById('customerForm');
+    const tableBody = document.getElementById('tableBody');
+    const searchInput = document.getElementById('searchInput');
+    const exportBtn = document.getElementById('exportBtn');
+
+    // 1. Page load hote hi data dikhao
+    document.addEventListener('DOMContentLoaded', () => displayCustomers());
+
+    // 2. Naya Customer Save karne ka function
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const customer = {
+            id: Date.now(), // Har customer ko ek unique ID di
+            name: document.getElementById('name').value,
+            phone: document.getElementById('phone').value,
+            address: document.getElementById('address').value
+        };
+
+        const customers = JSON.parse(localStorage.getItem('customers')) || [];
+        customers.push(customer);
+        localStorage.setItem('customers', JSON.stringify(customers));
+        
+        form.reset(); // Form khali karo
+        displayCustomers(); // Table update karo
+    });
+
+    // 3. Table mein data dikhane aur Search karne ka function
+    function displayCustomers(term = '') {
+        const customers = JSON.parse(localStorage.getItem('customers')) || [];
+        tableBody.innerHTML = '';
+        
+        // Filter logic for search
+        const filtered = customers.filter(c => 
+            c.name.toLowerCase().includes(term.toLowerCase()) || 
+            c.phone.includes(term)
+        );
+
+        filtered.forEach(customer => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${customer.name}</td>
+                <td>${customer.phone}</td>
+                <td>${customer.address}</td>
+                <td><button onclick="deleteCustomer(${customer.id})" class="btn-delete">Delete</button></td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    // 4. Search input par event listener
+    searchInput.addEventListener('input', (e) => {
+        displayCustomers(e.target.value);
+    });
+
+    // 5. Delete karne ka function
+    function deleteCustomer(id) {
+        if(confirm('Are you sure you want to delete this customer?')) {
+            let customers = JSON.parse(localStorage.getItem('customers')) || [];
+            customers = customers.filter(c => c.id !== id);
+            localStorage.setItem('customers', JSON.stringify(customers));
+            displayCustomers();
+        }
+    }
+
+    // 6. CSV Export function
+    exportBtn.addEventListener('click', () => {
+        const customers = JSON.parse(localStorage.getItem('customers')) || [];
+        if (customers.length === 0) return alert("No data to export!");
+
+        let csvContent = "Name,Phone,Address\n";
+        customers.forEach(c => {
+            csvContent += `"${c.name}","${c.phone}","${c.address}"\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'customer_database.csv');
+        a.click();
+    });
+</script>
+
+</body>
+</html>
